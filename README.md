@@ -1,57 +1,79 @@
---[[ ⚠️ SCRIPT DE TESTES AUTORIZADOS ⚠️ Usado para fins de detecção e simulação de exploits no Blox Fruits. Desenvolvido com autorização para segurança e monitoramento. --]]
+-- Este é o conteúdo do seu script remoto (salvo no GitHub)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
 
--- Serviços local Players = game:GetService("Players") local RunService = game:GetService("RunService") local StarterGui = game:GetService("StarterGui") local LocalPlayer = Players.LocalPlayer
+local espEnabled = true
+local autoFarm = false
 
--- Controle de estados globais _G.espEnabled = false _G.teamCheck = true _G.autoFarm = false _G.autoChest = false _G.autoFruit = false _G.autoRaid = false
+-- Cria interface simples
+local gui = Instance.new("ScreenGui")
+gui.Name = "SimpleESPGui"
+gui.Parent = game:GetService("CoreGui")
 
--- Interface local gui = Instance.new("ScreenGui") if syn and syn.protect_gui then syn.protect_gui(gui) end pcall(function() gui.Parent = game:GetService("CoreGui") end) gui.Name = "ESP_Interface"
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Position = UDim2.new(0, 10, 0, 50)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Parent = gui
 
-local frame = Instance.new("Frame") frame.Position = UDim2.new(0, 20, 0.3, 0) frame.Size = UDim2.new(0, 240, 0, 300) frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30) frame.BorderSizePixel = 0 frame.Parent = gui
+local espButton = Instance.new("TextButton")
+espButton.Size = UDim2.new(1, -20, 0, 30)
+espButton.Position = UDim2.new(0, 10, 0, 10)
+espButton.Text = "ESP: ON"
+espButton.Parent = frame
 
-local uiCorner = Instance.new("UICorner") uiCorner.CornerRadius = UDim.new(0, 8) uiCorner.Parent = frame
+local farmButton = Instance.new("TextButton")
+farmButton.Size = UDim2.new(1, -20, 0, 30)
+farmButton.Position = UDim2.new(0, 10, 0, 50)
+farmButton.Text = "Auto Farm: OFF"
+farmButton.Parent = frame
 
-local function createToggle(text, y, stateRef) local btn = Instance.new("TextButton") btn.Size = UDim2.new(1, -20, 0, 28) btn.Position = UDim2.new(0, 10, 0, y) btn.Text = text .. ": OFF" btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50) btn.TextColor3 = Color3.new(1, 1, 1) btn.Font = Enum.Font.SourceSansBold btn.TextSize = 14 btn.Parent = frame
-
-btn.MouseButton1Click:Connect(function()
-	_G[stateRef] = not _G[stateRef]
-	btn.Text = text .. (_G[stateRef] and ": ON" or ": OFF")
+espButton.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espButton.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
 end)
 
+farmButton.MouseButton1Click:Connect(function()
+    autoFarm = not autoFarm
+    farmButton.Text = "Auto Farm: " .. (autoFarm and "ON" or "OFF")
+end)
+
+-- Função ESP simples
+local function applyESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local highlight = player.Character:FindFirstChild("Highlight")
+            if espEnabled then
+                if not highlight then
+                    highlight = Instance.new("Highlight")
+                    highlight.Name = "Highlight"
+                    highlight.FillColor = Color3.new(1, 0, 0)
+                    highlight.Parent = player.Character
+                    highlight.Adornee = player.Character
+                end
+            else
+                if highlight then
+                    highlight:Destroy()
+                end
+            end
+        end
+    end
 end
 
--- ESP Functions local function applyESP(player) if player == LocalPlayer then return end if player.Character and not player.Character:FindFirstChild("ESPHighlight") then if _G.teamCheck and player.Team == LocalPlayer.Team then return end
-
-local esp = Instance.new("Highlight")
-	esp.Name = "ESPHighlight"
-	esp.FillColor = Color3.fromRGB(255, 0, 0)
-	esp.FillTransparency = 0.5
-	esp.OutlineColor = Color3.new(1, 1, 1)
-	esp.OutlineTransparency = 0
-	esp.Adornee = player.Character
-	esp.Parent = player.Character
+-- Função Auto Farm simples (exemplo)
+local function autoFarmFunc()
+    if not autoFarm then return end
+    for _, npc in pairs(workspace:GetChildren()) do
+        if npc:FindFirstChild("Humanoid") and npc:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character:PivotTo(npc.HumanoidRootPart.CFrame)
+            npc.Humanoid.Health = 0
+            wait(0.5)
+        end
+    end
 end
 
-end
-
-local function removeESP(player) if player.Character and player.Character:FindFirstChild("ESPHighlight") then player.Character.ESPHighlight:Destroy() end end
-
-local function updateESP() for _, player in pairs(Players:GetPlayers()) do if player ~= LocalPlayer then if _G.espEnabled then applyESP(player) else removeESP(player) end end end end
-
--- Funções principais local function doAutoFarm() for _, enemy in pairs(workspace:GetChildren()) do if enemy:FindFirstChild("Humanoid") and enemy:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character:PivotTo(enemy.HumanoidRootPart.CFrame * CFrame.new(0, 5, 5)) repeat enemy.Humanoid.Health -= 10 wait(0.2) until not _G.autoFarm or enemy.Humanoid.Health <= 0 end end end
-
-local function doChestHunt() for _, obj in pairs(workspace:GetDescendants()) do if obj.Name:lower():find("chest") and obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character:PivotTo(obj.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0)) wait(1) end end end
-
-local function doFruitHunt() for _, obj in pairs(workspace:GetDescendants()) do if obj:IsA("Tool") and obj.Name:lower():find("fruit") then LocalPlayer.Character:PivotTo(obj.Handle.CFrame + Vector3.new(0, 2, 0)) wait(1) end end end
-
-local function doAutoFactory() local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool") if tool then tool:Activate() end end
-
-local function doAutoRaid() local portal = workspace:FindFirstChild("RaidPortal") if portal and portal:IsA("Part") then LocalPlayer.Character:PivotTo(portal.CFrame + Vector3.new(0, 5, 0)) end end
-
--- Botões ON/OFF createToggle("ESP", 5, "espEnabled") createToggle("Auto Farm", 40, "autoFarm") createToggle("Auto Baús", 75, "autoChest") createToggle("Auto Frutas", 110, "autoFruit") createToggle("Auto Raid", 145, "autoRaid")
-
-local btnFactory = Instance.new("TextButton") btnFactory.Size = UDim2.new(1, -20, 0, 28) btnFactory.Position = UDim2.new(0, 10, 0, 180) btnFactory.Text = "Ativar Fábrica" btnFactory.BackgroundColor3 = Color3.fromRGB(50, 50, 50) btnFactory.TextColor3 = Color3.new(1, 1, 1) btnFactory.Font = Enum.Font.SourceSansBold btnFactory.TextSize = 14 btnFactory.Parent = frame btnFactory.MouseButton1Click:Connect(doAutoFactory)
-
--- Loop Principal RunService.RenderStepped:Connect(function() updateESP() if _G.autoFarm then doAutoFarm() end if _G.autoChest then doChestHunt() end if _G.autoFruit then doFruitHunt() end if _G.autoRaid then doAutoRaid() end end)
-
-print("[✅ Script de testes iniciado com sucesso]")
-
+RunService.RenderStepped:Connect(function()
+    applyESP()
+    autoFarmFunc()
+end)
