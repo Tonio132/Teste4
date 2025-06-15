@@ -1,93 +1,92 @@
 --[[ ⚠️ SCRIPT DE TESTES AUTORIZADOS ⚠️ 
-Feito para detectar uso indevido de exploits e simular comportamento
-de ferramentas suspeitas para estudo e segurança. 
+Usado para fins de detecção e simulação de exploits no Blox Fruits.
+Desenvolvido com autorização para segurança e monitoramento.
 --]]
 
--- Serviços úteis
+-- Serviços
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Variáveis de controle
-local teamCheck = true
+-- Controle de estados
 local espEnabled = false
+local teamCheck = true
 local autoFarm = false
 local autoChest = false
 local autoFruit = false
 local autoRaid = false
-local espObjects = {}
 
--- UI
+-- Interface
 local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "DebugTestUI"
+gui.Name = "ESP_Interface"
+
 local frame = Instance.new("Frame", gui)
-frame.Position = UDim2.new(0, 20, 0.3, 0)
-frame.Size = UDim2.new(0, 200, 0, 280)
+frame.Position = UDim2.new(0, 15, 0.3, 0)
+frame.Size = UDim2.new(0, 200, 0, 260)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 
-local function createButton(text, posY, callback)
+local function createButton(text, y, callback)
 	local btn = Instance.new("TextButton", frame)
-	btn.Size = UDim2.new(1, -20, 0, 30)
-	btn.Position = UDim2.new(0, 10, 0, posY)
+	btn.Size = UDim2.new(1, -20, 0, 28)
+	btn.Position = UDim2.new(0, 10, 0, y)
 	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextSize = 14
 	btn.MouseButton1Click:Connect(callback)
-	return btn
 end
 
--- ESP
-local function createESP(player)
+-- ESP Functions
+local function applyESP(player)
 	if player == LocalPlayer then return end
-	if player.Character and not player.Character:FindFirstChild("PlayerESP") then
+	if player.Character and not player.Character:FindFirstChild("ESPHighlight") then
+		if teamCheck and player.Team == LocalPlayer.Team then return end
+
 		local esp = Instance.new("Highlight")
-		esp.Name = "PlayerESP"
-		esp.Adornee = player.Character
+		esp.Name = "ESPHighlight"
 		esp.FillColor = Color3.fromRGB(255, 0, 0)
 		esp.FillTransparency = 0.5
 		esp.OutlineColor = Color3.new(1, 1, 1)
 		esp.OutlineTransparency = 0
+		esp.Adornee = player.Character
 		esp.Parent = player.Character
-		espObjects[player] = esp
 	end
 end
 
 local function removeESP(player)
-	if espObjects[player] then
-		espObjects[player]:Destroy()
-		espObjects[player] = nil
+	if player.Character and player.Character:FindFirstChild("ESPHighlight") then
+		player.Character.ESPHighlight:Destroy()
 	end
 end
 
 local function updateESP()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player ~= LocalPlayer then
-			if teamCheck and player.Team == LocalPlayer.Team then
-				removeESP(player)
+			if espEnabled then
+				applyESP(player)
 			else
-				createESP(player)
+				removeESP(player)
 			end
 		end
 	end
 end
 
--- Auto Farm Simples (bate em inimigos próximos)
+-- AutoFarm Simples
 local function doAutoFarm()
-	local enemies = workspace.Enemies:GetChildren()
-	for _, enemy in pairs(enemies) do
+	for _, enemy in pairs(workspace:GetChildren()) do
 		if enemy:FindFirstChild("Humanoid") and enemy:FindFirstChild("HumanoidRootPart") then
 			LocalPlayer.Character:PivotTo(enemy.HumanoidRootPart.CFrame * CFrame.new(0, 5, 5))
 			repeat
 				enemy.Humanoid.Health -= 10
-				wait(0.1)
+				wait(0.2)
 			until not autoFarm or enemy.Humanoid.Health <= 0
 		end
 	end
 end
 
--- Caça Baús
+-- Baús
 local function doChestHunt()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj.Name:lower():find("chest") and obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") then
@@ -97,68 +96,62 @@ local function doChestHunt()
 	end
 end
 
--- Busca por Frutas
+-- Frutas
 local function doFruitHunt()
 	for _, obj in pairs(workspace:GetDescendants()) do
 		if obj:IsA("Tool") and obj.Name:lower():find("fruit") then
-			LocalPlayer.Character:PivotTo(obj.Handle.CFrame + Vector3.new(0, 3, 0))
+			LocalPlayer.Character:PivotTo(obj.Handle.CFrame + Vector3.new(0, 2, 0))
 			wait(1)
 		end
 	end
 end
 
--- Auto "Fábrica" Simulada (habilidade ou crafting)
+-- Fábrica
 local function doAutoFactory()
 	local tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-	if tool then
-		tool:Activate()
-	end
+	if tool then tool:Activate() end
 end
 
--- Auto Raid (simplificado)
+-- Raid
 local function doAutoRaid()
 	local portal = workspace:FindFirstChild("RaidPortal")
-	if portal and portal:FindFirstChild("CFrame") then
+	if portal and portal:IsA("Part") then
 		LocalPlayer.Character:PivotTo(portal.CFrame + Vector3.new(0, 5, 0))
 	end
 end
 
 -- Botões
-createButton("ESP ON/OFF", 0.01, function()
+createButton("ESP ON/OFF", 5, function()
 	espEnabled = not espEnabled
 end)
 
-createButton("Team Check ON/OFF", 0.12, function()
+createButton("TeamCheck ON/OFF", 40, function()
 	teamCheck = not teamCheck
 end)
 
-createButton("AutoFarm", 0.23, function()
+createButton("Auto Farm", 75, function()
 	autoFarm = not autoFarm
 end)
 
-createButton("Auto Baús", 0.34, function()
+createButton("Caça Baús", 110, function()
 	autoChest = not autoChest
 end)
 
-createButton("Auto Frutas", 0.45, function()
+createButton("Caça Frutas", 145, function()
 	autoFruit = not autoFruit
 end)
 
-createButton("Auto Fábrica", 0.56, function()
+createButton("Auto Fábrica", 180, function()
 	doAutoFactory()
 end)
 
-createButton("Auto Raid", 0.67, function()
+createButton("Auto Raid", 215, function()
 	autoRaid = not autoRaid
-end)
-
-createButton("TP Ilha Inicial", 0.78, function()
-	LocalPlayer.Character:PivotTo(CFrame.new(1060, 16, 1425)) -- ajuste conforme a ilha
 end)
 
 -- Loop Principal
 RunService.RenderStepped:Connect(function()
-	if espEnabled then updateESP() end
+	updateESP()
 	if autoFarm then doAutoFarm() end
 	if autoChest then doChestHunt() end
 	if autoFruit then doFruitHunt() end
